@@ -1,5 +1,6 @@
 # csgo_resource_installer_enemydown
-Program to download resources and extract them to the csgo directory. (For EnemyDown Server)
+Program to download resources and extract them to the csgo directory. (For EnemyDown Server)  
+[download](https://github.com/VSMPNR/csgo_resource_installer_for_enemydown/releases/tag/v0.1.0)
 # Crates Used
 >tokio  
 >https://github.com/tokio-rs/tokio  
