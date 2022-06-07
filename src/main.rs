@@ -97,22 +97,32 @@ async fn execute() -> bool {
 fn get_csgo_path_from_steam_library_folders(steam: &str) -> Vec<std::path::PathBuf> {
     let regex = regex::Regex::new("^\\s+\"path\"\\s+\"(?P<directory>.+)\"$").unwrap();
     let mut directorys = Vec::<std::path::PathBuf>::new();
-    let steam_config = std::path::PathBuf::from(steam).join("config\\libraryfolders.vdf");
+    let steam_libraryfolders = std::path::PathBuf::from(steam).join("config\\libraryfolders.vdf");
     println!("  Find SteamLibraryDirectory");
-    for line in std::io::BufReader::new(std::fs::File::open(steam_config).unwrap()).lines() {
-        if let Ok(line) = line {
-            if let Some(caps) = regex.captures(&line) {
-                let directory = caps["directory"].to_string();
-                let directory = directory.replace("\\\\", "\\");
-
-                let path = std::path::PathBuf::from(&directory).join("steamapps\\common\\Counter-Strike Global Offensive\\csgo");
-                if path.is_dir() {
-                    println!("    [\x1b[32m  valid\x1b[0m] {}", path.to_str().unwrap());
-                    directorys.push(path);
-                } else {
-                    println!("    [\x1b[31minvaild\x1b[0m] {}", directory);
+    if let Ok(steam_libraryfolders) = std::fs::File::open(steam_libraryfolders) {
+        for line in std::io::BufReader::new(steam_libraryfolders).lines() {
+            if let Ok(line) = line {
+                if let Some(caps) = regex.captures(&line) {
+                    let directory = caps["directory"].to_string();
+                    let directory = directory.replace("\\\\", "\\");
+    
+                    let path = std::path::PathBuf::from(&directory).join("steamapps\\common\\Counter-Strike Global Offensive\\csgo");
+                    if path.is_dir() {
+                        println!("    [\x1b[32m  valid\x1b[0m] {}", path.to_str().unwrap());
+                        directorys.push(path);
+                    } else {
+                        println!("    [\x1b[31minvaild\x1b[0m] {}", directory);
+                    }
                 }
             }
+        }
+    } else {
+        let path = std::path::PathBuf::from(steam).join("steamapps\\common\\Counter-Strike Global Offensive\\csgo");
+        if path.is_dir() {
+            println!("    [\x1b[32m  valid\x1b[0m] {}", path.to_str().unwrap());
+            directorys.push(path);
+        } else {
+            println!("    [\x1b[31minvaild\x1b[0m] {}", path.to_str().unwrap());
         }
     }
 
@@ -169,6 +179,7 @@ fn get_csgo_path() -> Option<PathBuf> {
             return None;
         }
     }
+    
     println!("    \x1b[31mUnable to get csgo.exe process and steam.exe process.\x1b[0m");
     println!("    \x1b[31mPlease make sure that csgo or steam is running.\x1b[0m");
     None
