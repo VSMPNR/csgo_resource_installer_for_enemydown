@@ -31,7 +31,7 @@ impl Progress {
             };
 
             let (_, width) = term.size();
-            let bar_width = width as isize - (time_string.len() + percentage_string.len() + 2 + cell.borrow().message.len()) as isize;
+            let bar_width = width as isize - (time_string.len() + percentage_string.len() + 2 + console::measure_text_width(&cell.borrow().message)) as isize;
 
             output.clear();
             output.push_str(&cell.borrow().message);

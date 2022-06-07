@@ -17,16 +17,19 @@ use crate::downloader::Downloader;
 
 #[tokio::main]
 async fn main() {
-    let term = console::Term::stdout();
+    let success = match std::panic::catch_unwind(|| async { execute().await }) {
+        Ok(fut) => fut.await,
+        Err(_) => false,
+    };
 
-    if execute(&term).await {
-        term.write_line("").unwrap();
-        term.write_line("").unwrap();
-        term.write_line(&console::Style::new().green().apply_to(" Success").to_string()).unwrap();
+    if success {
+        println!("");
+        println!("");
+        println!(" \x1b[32mSuccess\x1b[0m");
     } else {
-        term.write_line("").unwrap();
-        term.write_line("").unwrap();
-        term.write_line(&console::Style::new().red().apply_to(" Faild").to_string()).unwrap();
+        println!("");
+        println!("");
+        println!(" \x1b[31mFaild\x1b[0m");
     }
 
     let mut s = String::new();
@@ -34,64 +37,68 @@ async fn main() {
 }
 
 const DOWNLOAD_URL: &str = "https://drive.google.com/uc?id=1t4_N2z03XWyeAn6IdmR3xfBE2qHuCzx-&confirm=t";
+//const DOWNLOAD_URL: &str = "https://o16xyq.dm.files.1drv.com/y4mwX0rX0FZVKtuoUBu7lZtMJcirH9bKULQX1offK41a3Y4TgB8Ea5Ihgw6oeI_ykDXXmmhAUZi2OZ2Zts8tIyIs-UZ4h4xbZxZrpM19KNJrg_Df1ovZYHoUcCOqmrR1ML1ktnPxgPc87Hgh4P58QRNkay-pwwMqX-vJUnxqFRizITzAHUHqaJczX_QxYH1a0Rn8iR__Tq7m230uIrslQ9lvw";
 
-async fn execute(term: &console::Term) -> bool {
-    term.write_line("This program is distributed under the MIT License.").unwrap();
-    term.write_line("  Copyright (c) 2022 VSMPNR").unwrap();
-    term.write_line("  https://opensource.org/licenses/mit-license.php").unwrap();
-    term.write_line("").unwrap();
+async fn execute() -> bool {
+    let term = console::Term::stdout();
 
-    term.write_line("This program used these Crates.").unwrap();
-    term.write_line("  tokio [version=\"1.19.0\" license=\"MIT\"]").unwrap();
-    term.write_line("  reqwest [version=\"1.11.10\" license=\"MIT / Apache-2.0\"]").unwrap();
-    term.write_line("  console [version=\"0.15.0\" license=\"MIT\"]").unwrap();
-    term.write_line("  sysinfo [version=\"0.23.13\" license=\"MIT\"]").unwrap();
-    term.write_line("  regex [version = \"1.5.6\" license=\"MIT / Apache-2.0\"]").unwrap();
-    term.write_line("  zip [version=\"0.6.2\" license=\"MIT\"]").unwrap();
-    term.write_line("").unwrap();
+    console::Style::new().black().apply_to("").to_string();
+    println!("This program is distributed under the MIT License.");
+    println!("  Copyright (c) 2022 VSMPNR");
+    println!("  https://opensource.org/licenses/mit-license.php");
+    println!("");
 
-    term.write_line("Contact").unwrap();
-    term.write_line("  [Github]https://github.com/VSMPNR").unwrap();
-    term.write_line("  [ Steam]https://steamcommunity.com/profiles/76561198825527396/").unwrap();
-    term.write_line("    If you modify this program, please rewrite your own contact information as well.").unwrap();
-    term.write_line("").unwrap();
-    term.write_line("").unwrap();
-    term.write_line("").unwrap();
+    println!("This program used these Crates.");
+    println!("  tokio [version=\"1.19.0\" license=\"MIT\"]");
+    println!("  reqwest [version=\"1.11.10\" license=\"MIT / Apache-2.0\"]");
+    println!("  console [version=\"0.15.0\" license=\"MIT\"]");
+    println!("  sysinfo [version=\"0.23.13\" license=\"MIT\"]");
+    println!("  regex [version = \"1.5.6\" license=\"MIT / Apache-2.0\"]");
+    println!("  zip [version=\"0.6.2\" license=\"MIT\"]");
+    println!("");
 
-    term.write_line("Start EnemyDown Server Resource Install? (Select).").unwrap();
+    println!("Contact");
+    println!("  [Github]https://github.com/VSMPNR");
+    println!("  [ Steam]https://steamcommunity.com/profiles/76561198825527396/");
+    println!("    If you modify this program, please rewrite your own contact information as well.");
+    println!("");
+    println!("");
+    println!("");
+
+    println!("Start EnemyDown Server Resource Install? (Left Right Enter).");
     let mut menu = component::Menu::new();
+    //menu.add("ReInstall(overwrite)");
     menu.add("Install");
     menu.add("Cancel");
     let select = menu.select(1);
     term.move_cursor_up(1).unwrap();
     term.clear_to_end_of_screen().unwrap();
+
     if select == 1 {
-        term.write_line("Cancel Select").unwrap();
+        println!("Cancel Select");
         return true;
     }
 
-    let csgo_path = if let Some(csgo_path) = get_csgo_path(&term) {
+    let csgo_path = if let Some(csgo_path) = get_csgo_path() {
         csgo_path
     } else {
-        term.write_line("").unwrap();
-        term.write_line("The csgo.exe process could not be found").unwrap();
         return false
     };
 
-    term.write_line("").unwrap();
-    term.write_line("Start downloading Resource files").unwrap();
+    println!("");
+    println!("Start downloading Resource files");
     let mut d = Downloader::new();
     d.download(DOWNLOAD_URL, ".\\download.zip").await;
-    unzip(&term, ".\\download.zip", csgo_path.to_str().unwrap()).unwrap();
+    unzip(".\\download.zip", csgo_path.to_str().unwrap(), false).unwrap();
 
     return true;
 }
 
-fn get_csgo_path_from_steam_library_folders(term: &console::Term, steam: &str) -> Vec<std::path::PathBuf> {
+fn get_csgo_path_from_steam_library_folders(steam: &str) -> Vec<std::path::PathBuf> {
     let regex = regex::Regex::new("^\\s+\"path\"\\s+\"(?P<directory>.+)\"$").unwrap();
     let mut directorys = Vec::<std::path::PathBuf>::new();
     let steam_config = std::path::PathBuf::from(steam).join("config\\libraryfolders.vdf");
-    term.write_line(&format!("  SteamLibraryDirectory")).unwrap();
+    println!("  Find SteamLibraryDirectory");
     for line in std::io::BufReader::new(std::fs::File::open(steam_config).unwrap()).lines() {
         if let Ok(line) = line {
             if let Some(caps) = regex.captures(&line) {
@@ -100,10 +107,10 @@ fn get_csgo_path_from_steam_library_folders(term: &console::Term, steam: &str) -
 
                 let path = std::path::PathBuf::from(&directory).join("steamapps\\common\\Counter-Strike Global Offensive\\csgo");
                 if path.is_dir() {
-                    term.write_line(&format!("    [  valid]{}", path.to_str().unwrap())).unwrap();
+                    println!("    [\x1b[32m  valid\x1b[0m] {}", path.to_str().unwrap());
                     directorys.push(path);
                 } else {
-                    term.write_line(&format!("    [invaild]{}", directory)).unwrap();
+                    println!("    [\x1b[31minvaild\x1b[0m] {}", directory);
                 }
             }
         }
@@ -112,8 +119,8 @@ fn get_csgo_path_from_steam_library_folders(term: &console::Term, steam: &str) -
     directorys
 }
 
-fn get_csgo_path(term: &console::Term) -> Option<PathBuf> {
-    term.write_line("Start getting the directory of CSGO.").unwrap();
+fn get_csgo_path() -> Option<PathBuf> {
+    println!("Start getting the directory of CSGO.");
     let sys = sysinfo::System::new_all();
     let processes = sys.processes();
 
@@ -135,33 +142,39 @@ fn get_csgo_path(term: &console::Term) -> Option<PathBuf> {
     if let Some(csgo_path) = &mut csgo {
         csgo_path.push("csgo");
         if csgo_path.is_dir() {
-            term.write_line(&format!("  Found path to CSGO. [{}]", csgo_path.to_str().unwrap())).unwrap();
+            println!("  \x1b[32mFound path to CSGO. [{}]\x1b[0m", csgo_path.to_str().unwrap());
             return csgo;
         } else {
-            term.write_line(&format!("  Invalid path. [{}]", csgo_path.to_str().unwrap())).unwrap();
+            println!("  \x1b[31mInvalid path. [{}]\x1b[0m", csgo_path.to_str().unwrap());
         }
-    } else if let Some(steam_path) = steam {
-        term.write_line(&format!("")).unwrap();
-        term.write_line(&format!("CSGO process not found.")).unwrap();
-        term.write_line(&format!("Locate the CSGO directory in the steam library folder.")).unwrap();
-        let csgo_pathes = get_csgo_path_from_steam_library_folders(&term, steam_path.to_str().unwrap());
+    }
+
+    if let Some(steam_path) = steam {
+        println!("  \x1b[33mCSGO process not found.\x1b[0m");
+        println!("  \x1b[33mLocate the CSGO directory in the steam library folder.\x1b[0m");
+        let csgo_pathes = get_csgo_path_from_steam_library_folders(steam_path.to_str().unwrap());
         
         let pathes_amount = csgo_pathes.len();
         if pathes_amount == 1 {
+            println!("    \x1b[32mFound path to CSGO. [{}]\x1b[0m", csgo_pathes[0].to_str().unwrap());
             return Some(csgo_pathes[0].clone());
         } else if pathes_amount > 1 {
+            println!("    \x1b[31mMultiple csgo directories were found.\x1b[0m");
+            for dir in csgo_pathes {
+                println!("      {}", dir.to_str().unwrap());
+            }
             return None;
-            todo!();
         } else {
+            println!("    \x1b[31mMCould not find the csgo directory.\x1b[0m");
             return None;
         }
     }
-    term.write_line("  Unable to retrieve csgo.exe process.").unwrap();
-    term.write_line("  Please make sure csgo is running!").unwrap();
+    println!("    \x1b[31mUnable to get csgo.exe process and steam.exe process.\x1b[0m");
+    println!("    \x1b[31mPlease make sure that csgo or steam is running.\x1b[0m");
     None
 }
 
-fn unzip(term: &console::Term, path: &str, out_dir: &str) -> std::io::Result<()>{
+fn unzip(path: &str, out_dir: &str, overwrite: bool) -> std::io::Result<()>{
     let mut zip = zip::ZipArchive::new(std::io::BufReader::new(std::fs::File::open(path)?))?;
     let path_buf = std::path::PathBuf::from(out_dir);
     
@@ -193,7 +206,7 @@ fn unzip(term: &console::Term, path: &str, out_dir: &str) -> std::io::Result<()>
                 skip_count += 1;
             }
         } else {
-            if let Ok(mut out_file) = std::fs::OpenOptions::new().write(true).create_new(true).open(&out_path) {
+            if let Ok(mut out_file) = std::fs::OpenOptions::new().write(true).create_new(!overwrite).open(&out_path) {
                 match std::io::copy(&mut file, &mut out_file) {
                     Ok(_) => {
                         status = &done;
@@ -215,10 +228,10 @@ fn unzip(term: &console::Term, path: &str, out_dir: &str) -> std::io::Result<()>
             }
         }
 
-        term.write_line(&format!("[{}] [{:>5}/{:>5}] {}", status, i + 1, len, zip_inside_path.to_str().unwrap())).unwrap();
+        println!("[{}] [{:>5}/{:>5}] {}", status, i + 1, len, zip_inside_path.to_str().unwrap());
     }
     
-    term.write_line(&format!("[Amount:{}, Create:{}, Skip:{}, Error:{}]", len, create_count, skip_count, error_count)).unwrap();
+    println!("[Amount:{}, \x1b[32mCreate:{}\x1b[0m, \x1b[33mSkip:{}\x1b[0m, \x1b[31mError:{}\x1b[0m]", len, create_count, skip_count, error_count);
 
     Ok(())
 }

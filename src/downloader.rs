@@ -57,18 +57,20 @@ impl Downloader {
                     {
                         let mut prog = cell.borrow_mut();
                         if mb_s < 1.0 {
-                            let speed = mb_s.to_string();
-                            let speed = if speed.len() >= 5 { &speed[..5] } else { &speed };
-                            (*prog).message = format!("  {}KB/s {}/{} MB", speed, (downloaded as f32 * 0.000001) as usize, size_mb);
+                            //let speed = mb_s.to_string();
+                            //let speed = if speed.len() >= 5 { &speed[..5] } else { &speed };
+                            (*prog).message = format!("  \x1b[31m{}KB/s\x1b[0m {}/{} MB", (mb_s*1000.0) as usize, (downloaded as f32 * 0.000001) as usize, size_mb);
+                        } else if mb_s < 5.0 {
+                            (*prog).message = format!("  \x1b[33m{}MB/s\x1b[0m {}/{} MB", mb_s as usize, (downloaded as f32 * 0.000001) as usize, size_mb);
                         } else {
-                            (*prog).message = format!("  {}MB/s {}/{} MB", mb_s as usize, (downloaded as f32 * 0.000001) as usize, size_mb);
+                            (*prog).message = format!("  \x1b[32m{}MB/s\x1b[0m {}/{} MB", mb_s as usize, (downloaded as f32 * 0.000001) as usize, size_mb);
                         }
                         (*prog).progress = prog_f as f32;
                     }
-        
+                    
                     tokio::task::yield_now().await;
                 } else {
-                    cell.borrow_mut().message = format!("  0MB/s {}/{} MB", (downloaded as f32 * 0.000001) as usize, size_mb);
+                    cell.borrow_mut().message = format!("  \x1b[32m0MB/s\x1b[0m {}/{} MB", (downloaded as f32 * 0.000001) as usize, size_mb);
                     break;
                 }
             }
